@@ -8,18 +8,30 @@ sudo apt install -y ufw
 echo "[+] Enabling systemd-resolved (already included in Pop!_OS)..."
 sudo systemctl enable --now systemd-resolved
 
-echo "[+] Configuring DNS over TLS with Mullvad + AdGuard (with Quad9 fallback)..."
+echo "[+] Configuring DNS over TLS with trusted resolvers (by IP only)..."
 sudo mkdir -p /etc/systemd/resolved.conf.d
 sudo tee /etc/systemd/resolved.conf.d/dot.conf >/dev/null <<'EOF'
 [Resolve]
-# Primary ad/tracker blocking resolvers (encrypted DoT)
-DNS=adblock.dns.mullvad.net dns.adguard.com
+# --- Secure DNS resolvers (DoT on TCP/853) ---
+# Mullvad (Ad-blocking, privacy-focused, Sweden)
+DNS=194.242.2.2 194.242.2.3
 
-# Fallback resolver (encrypted, malware protection)
-FallbackDNS=dns.quad9.net
+# AdGuard (Ad-blocking, tracker blocking, Russia/Cyprus infra)
+DNS=94.140.14.14 94.140.15.15
 
+# Quad9 (Malware blocking, nonprofit, Switzerland)
+DNS=9.9.9.9 149.112.112.112
+
+# Cloudflare (Privacy-first, very fast, USA-based)
+DNS=1.1.1.1 1.0.0.1
+
+# NextDNS (Customizable profiles, privacy-focused)
+DNS=45.90.28.0 45.90.30.0
+
+# Enforce DNS over TLS
 DNSOverTLS=yes
-# Optional: DNSSEC validation (uncomment if desired)
+
+# Optional: enable DNSSEC validation
 # DNSSEC=allow-downgrade
 EOF
 
@@ -34,9 +46,11 @@ echo "[+] Setting up firewall rules..."
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 
-# Block all plaintext DNS
-sudo ufw delete deny out 53 2>/dev/null || true
-sudo ufw deny out 53 comment 'Block plaintext DNS (UDP/TCP)'
+# Block all plaintext DNS (UDP + TCP separately)
+sudo ufw delete deny out 53 proto udp 2>/dev/null || true
+sudo ufw delete deny out 53 proto tcp 2>/dev/null || true
+sudo ufw deny out 53 proto udp comment 'Block plaintext DNS (UDP)'
+sudo ufw deny out 53 proto tcp comment 'Block plaintext DNS (TCP)'
 
 # Block DoT over UDP (force TCP only)
 sudo ufw delete deny out 853 proto udp 2>/dev/null || true
@@ -59,8 +73,9 @@ echo "[+] Firewall status:"
 sudo ufw status verbose
 
 echo "[+] Sanity checks..."
+echo "--- resolvectl ---"
 resolvectl status | head -n 30 || true
-echo "---"
-sudo ss -tupn | grep ':853' || echo "No DNS queries seen yet. Open a webpage to test."
+echo "--- active DoT sessions (TCP/853) ---"
+sudo ss -tupn | grep ':853' || echo "No DNS queries yet. Open a webpage to test."
 
-echo "[✓] Secure DNS + Firewall setup complete for Pop!_OS."
+echo "[✓] Secure DNS over TLS + Firewall setup complete for Pop!_OS."
