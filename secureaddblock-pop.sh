@@ -16,7 +16,7 @@ sudo tee /etc/systemd/resolved.conf.d/dot.conf >/dev/null <<'EOF'
 # Mullvad (Ad-blocking, privacy-focused, Sweden)
 DNS=194.242.2.2 194.242.2.3
 
-# AdGuard (Ad-blocking, tracker blocking, Russia/Cyprus infra)
+# AdGuard (Ad-blocking, tracker blocking, Cyprus/Russia infra)
 DNS=94.140.14.14 94.140.15.15
 
 # Quad9 (Malware blocking, nonprofit, Switzerland)
@@ -46,19 +46,15 @@ echo "[+] Setting up firewall rules..."
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 
-# Block all plaintext DNS (UDP + TCP separately)
-sudo ufw delete deny out 53 proto udp 2>/dev/null || true
-sudo ufw delete deny out 53 proto tcp 2>/dev/null || true
-sudo ufw deny out 53 proto udp comment 'Block plaintext DNS (UDP)'
-sudo ufw deny out 53 proto tcp comment 'Block plaintext DNS (TCP)'
+# Block all plaintext DNS (UDP + TCP)
+sudo ufw deny out 53 proto udp comment 'Block plaintext DNS (UDP)' || true
+sudo ufw deny out 53 proto tcp comment 'Block plaintext DNS (TCP)' || true
 
 # Block DoT over UDP (force TCP only)
-sudo ufw delete deny out 853 proto udp 2>/dev/null || true
-sudo ufw deny out 853 proto udp comment 'Block DoT over UDP (enforce TCP/TLS)'
+sudo ufw deny out 853 proto udp comment 'Block DoT over UDP (enforce TCP/TLS)' || true
 
 # Allow DoT over TCP
-sudo ufw delete allow out 853 proto tcp 2>/dev/null || true
-sudo ufw allow out 853 proto tcp comment 'Allow DNS over TLS (TCP)'
+sudo ufw allow out 853 proto tcp comment 'Allow DNS over TLS (TCP)' || true
 
 # (Optional) allow SSH if you use it
 # sudo ufw allow 22/tcp comment 'Allow SSH'
