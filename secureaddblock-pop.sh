@@ -8,6 +8,14 @@ sudo apt install -y ufw
 echo "[+] Enabling systemd-resolved (already included in Pop!_OS)..."
 sudo systemctl enable --now systemd-resolved
 
+echo "[+] Forcing NetworkManager not to override DNS..."
+sudo mkdir -p /etc/NetworkManager/conf.d
+sudo tee /etc/NetworkManager/conf.d/90-dns-none.conf >/dev/null <<'EOF'
+[main]
+dns=none
+EOF
+sudo systemctl restart NetworkManager
+
 echo "[+] Configuring DNS over TLS with trusted resolvers (by IP only)..."
 sudo mkdir -p /etc/systemd/resolved.conf.d
 sudo tee /etc/systemd/resolved.conf.d/dot.conf >/dev/null <<'EOF'
@@ -30,9 +38,6 @@ DNS=45.90.28.0 45.90.30.0
 
 # Enforce DNS over TLS
 DNSOverTLS=yes
-
-# Optional: enable DNSSEC validation
-# DNSSEC=allow-downgrade
 EOF
 
 echo "[+] Pointing resolv.conf to systemd stub..."
@@ -46,15 +51,14 @@ echo "[+] Setting up firewall rules..."
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 
-# Block all plaintext DNS (UDP + TCP)
-sudo ufw deny out 53 proto udp || true
-sudo ufw deny out 53 proto tcp || true
+# Block plaintext DNS (both TCP+UDP)
+sudo ufw deny out 53 || true
 
 # Block DoT over UDP (force TCP only)
-sudo ufw deny out 853 proto udp || true
+sudo ufw deny out 853/udp || true
 
 # Allow DoT over TCP
-sudo ufw allow out 853 proto tcp || true
+sudo ufw allow out 853/tcp || true
 
 # (Optional) allow SSH if you use it
 # sudo ufw allow 22/tcp
