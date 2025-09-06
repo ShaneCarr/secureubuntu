@@ -47,17 +47,17 @@ sudo ufw default deny incoming
 sudo ufw default allow outgoing
 
 # Block all plaintext DNS (UDP + TCP)
-sudo ufw deny out 53 proto udp comment 'Block plaintext DNS (UDP)' || true
-sudo ufw deny out 53 proto tcp comment 'Block plaintext DNS (TCP)' || true
+sudo ufw deny out 53 proto udp || true
+sudo ufw deny out 53 proto tcp || true
 
 # Block DoT over UDP (force TCP only)
-sudo ufw deny out 853 proto udp comment 'Block DoT over UDP (enforce TCP/TLS)' || true
+sudo ufw deny out 853 proto udp || true
 
 # Allow DoT over TCP
-sudo ufw allow out 853 proto tcp comment 'Allow DNS over TLS (TCP)' || true
+sudo ufw allow out 853 proto tcp || true
 
 # (Optional) allow SSH if you use it
-# sudo ufw allow 22/tcp comment 'Allow SSH'
+# sudo ufw allow 22/tcp
 
 # Enable firewall if not already active
 if ! sudo ufw status | grep -q "Status: active"; then
